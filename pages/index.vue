@@ -13,7 +13,7 @@
         <UIcon name="lucide:cloud-upload" size="36" class="text-gray-600" />
 
         <h2 class="inline-block mt-4 text-xl">Upload Your Files</h2>
-        <p class="max-w-md text-gray-500">Drag and drop your files here, or click to browse. Files will be uploaded in
+        <p class="max-w-md text-gray-500">Drag and drop your file here, or click to browse. File will be uploaded in
           chunks for better performance, and you can resume uploads if interrupted.</p>
 
         <input id="file-upload" type="file" name="file-upload" hidden>
