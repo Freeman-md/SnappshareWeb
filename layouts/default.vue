@@ -7,7 +7,7 @@
                         <div class="bg-primary text-white rounded-xl w-10 h-10 flex items-center justify-center">
                             <UIcon name="ic:outline-file-upload" size="28" />
                         </div>
-                        <span class="text-2xl font-medium text-gray-900">Chunkify</span>
+                        <span class="text-2xl font-medium text-gray-900">SnappShare</span>
                     </h1>
                 </nav>
             </div>
