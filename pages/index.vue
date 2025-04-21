@@ -8,8 +8,13 @@
     </section>
 
     <section id="file-uploader" class="container mx-auto">
-      <div ref="dropZoneRef"
-        class="border border-dashed border-gray-200 rounded-lg p-10 flex flex-col items-center justify-center space-y-5 text-center">
+      <div
+ref="dropZoneRef" :class="[
+        'border border-dashed rounded-lg p-10 flex flex-col items-center justify-center space-y-5 text-center transition-all duration-200',
+        isOverDropZone
+          ? 'border-blue-500 bg-blue-50 scale-[1.02] shadow-md'
+          : 'border-gray-200'
+      ]">
         <UIcon name="lucide:cloud-upload" size="36" class="text-gray-600" />
 
         <div v-if="!file" class="space-y-5">
@@ -19,20 +24,32 @@
         </div>
 
         <div v-else class="space-y-2 text-center">
-          <p class="font-semibold text-lg">{{ file.raw.name }}</p>
+          <div class="relative">
+            <p class="font-semibold text-lg">{{ file.raw.name }}</p>
+            <UButton color="error" :square="true" class="absolute -top-5 -right-5 cursor-pointer rounded-full" @click="removeFile">
+              <UIcon name="lucide:x" size="14" />
+            </UButton>
+          </div>
 
-          <img v-if="file.raw.type.startsWith('image/')" :src="file.previewUrl" alt="Preview"
+          <img
+v-if="file.raw.type.startsWith('image/')" :src="file.previewUrl" alt="Preview"
             class="max-h-48 mx-auto rounded-md shadow">
 
-          <video v-else-if="file.raw.type.startsWith('video/')" :src="file.previewUrl" controls
+          <video
+v-else-if="file.raw.type.startsWith('video/')" :src="file.previewUrl" controls
             class="max-h-48 mx-auto rounded-md shadow" />
 
-          <div v-else class="text-gray-500 italic">Preview not available</div>
+          <div v-else class="flex flex-col items-center space-y-2">
+            <UIcon :name="getFileIcon(file.raw.type)" size="40" class="text-gray-500" />
+            <p class="text-sm text-gray-400">No preview available</p>
+          </div>
+
         </div>
 
         <input id="file-upload" ref="fileUploadInput" type="file" name="file-upload" hidden>
 
-        <button type="button" class="btn cursor-pointer" @click.prevent="browseFiles">Browse Files</button>
+        <UButton v-if="!file" type="button" color="primary" label="Browse Files" @click="browseFiles" />
+        <UButton v-else type="button" color="error" label="Remove File" @click="removeFile" />
       </div>
     </section>
 
@@ -40,11 +57,13 @@
       <h3 class="text-xl font-semibold ml-4 sm:ml-0">Files</h3>
 
       <div class="space-y-3">
-        <div v-for="(fileItem, index) in files" :key="index"
+        <div
+v-for="(fileItem, index) in files" :key="index"
           class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full">
           <div class="flex-shrink-0 text-primary px-4 py-2">
             <UIcon v-if="fileItem.fileExtension == 'mp4'" name="heroicons:video-camera" size="34" />
-            <UIcon v-else-if="fileItem.fileExtension == 'jpg'" name="material-symbols:photo-camera-outline-rounded"
+            <UIcon
+v-else-if="fileItem.fileExtension == 'jpg'" name="material-symbols:photo-camera-outline-rounded"
               size="34" />
             <UIcon v-else name="bitcoin-icons:file-outline" size="40" class="-ml-1.5" />
           </div>
@@ -71,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import { UButton } from '#components';
 import { useDropZone } from '@vueuse/core';
 
 const files = reactive<Array<FileEntry>>([
@@ -105,6 +125,19 @@ const file = ref<{ raw: File; previewUrl: string } | null>(null);
 const browseFiles = () => {
   fileUploadInput.value?.click();
 }
+
+const removeFile = () => {
+  file.value = null
+};
+
+const getFileIcon = (mime: string) => {
+  if (mime.includes('pdf')) return 'mdi:file-pdf-box'
+  if (mime.includes('word') || mime.includes('doc')) return 'mdi:file-word-box'
+  if (mime.includes('zip') || mime.includes('rar')) return 'mdi:archive'
+  if (mime.includes('excel') || mime.includes('spreadsheet')) return 'mdi:file-excel-box'
+  return 'lucide:file'
+}
+
 
 const onDrop = (files: File[] | null) => {
   if (!files || files.length <= 0) return
