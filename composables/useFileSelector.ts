@@ -4,19 +4,19 @@ export function useFileSelector(onSelect: (file: File) => void) {
     const browseFiles = () => {
       fileInputRef.value?.click()
     }
-  
-    onMounted(() => {
+
+    const setupListeners = () => {
       fileInputRef.value?.addEventListener('change', (e) => {
         const files = (e.target as HTMLInputElement).files
         if (!files?.length) return
-  
         onSelect(files[0])
       })
-    })
+    }
   
     return {
       fileInputRef,
       browseFiles,
+      setupListeners
     }
   }
   

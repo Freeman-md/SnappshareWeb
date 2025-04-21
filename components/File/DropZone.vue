@@ -89,7 +89,7 @@ const handleFile = (selected: File) => {
 }
 
 const { dropZoneRef, isOverDropZone } = useFileDrop(handleFile)
-const { fileInputRef, browseFiles } = useFileSelector(handleFile)
+const { fileInputRef, browseFiles, setupListeners } = useFileSelector(handleFile)
 
 const removeFile = () => {
   if (file.value?.previewUrl) URL.revokeObjectURL(file.value.previewUrl)
@@ -103,5 +103,9 @@ const getFileIcon = (mime: string) => {
   if (mime.includes('excel') || mime.includes('spreadsheet')) return 'mdi:file-excel-box'
   return 'lucide:file'
 }
+
+onMounted(() => {
+  setupListeners()
+})
 
 </script>
