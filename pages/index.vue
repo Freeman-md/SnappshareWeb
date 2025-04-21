@@ -8,7 +8,7 @@
     </section>
 
     <section id="file-uploader" class="container mx-auto">
-      <div
+      <div ref="dropZoneRef"
         class="border border-dashed border-gray-200 rounded-lg p-10 flex flex-col items-center justify-center space-y-5 text-center">
         <UIcon name="lucide:cloud-upload" size="36" class="text-gray-600" />
 
@@ -21,12 +21,10 @@
         <div v-else class="space-y-2 text-center">
           <p class="font-semibold text-lg">{{ file.raw.name }}</p>
 
-          <img
-v-if="file.raw.type.startsWith('image/')" :src="file.previewUrl" alt="Preview"
+          <img v-if="file.raw.type.startsWith('image/')" :src="file.previewUrl" alt="Preview"
             class="max-h-48 mx-auto rounded-md shadow">
 
-          <video
-v-else-if="file.raw.type.startsWith('video/')" :src="file.previewUrl" controls
+          <video v-else-if="file.raw.type.startsWith('video/')" :src="file.previewUrl" controls
             class="max-h-48 mx-auto rounded-md shadow" />
 
           <div v-else class="text-gray-500 italic">Preview not available</div>
@@ -42,13 +40,11 @@ v-else-if="file.raw.type.startsWith('video/')" :src="file.previewUrl" controls
       <h3 class="text-xl font-semibold ml-4 sm:ml-0">Files</h3>
 
       <div class="space-y-3">
-        <div
-v-for="(fileItem, index) in files" :key="index"
+        <div v-for="(fileItem, index) in files" :key="index"
           class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full">
           <div class="flex-shrink-0 text-primary px-4 py-2">
             <UIcon v-if="fileItem.fileExtension == 'mp4'" name="heroicons:video-camera" size="34" />
-            <UIcon
-v-else-if="fileItem.fileExtension == 'jpg'" name="material-symbols:photo-camera-outline-rounded"
+            <UIcon v-else-if="fileItem.fileExtension == 'jpg'" name="material-symbols:photo-camera-outline-rounded"
               size="34" />
             <UIcon v-else name="bitcoin-icons:file-outline" size="40" class="-ml-1.5" />
           </div>
@@ -75,6 +71,8 @@ v-else-if="fileItem.fileExtension == 'jpg'" name="material-symbols:photo-camera-
 </template>
 
 <script setup lang="ts">
+import { useDropZone } from '@vueuse/core';
+
 const files = reactive<Array<FileEntry>>([
   {
     id: 'yuhd&882',
@@ -99,6 +97,7 @@ const files = reactive<Array<FileEntry>>([
   },
 ])
 
+const dropZoneRef = ref<HTMLDivElement>()
 const fileUploadInput = ref<HTMLInputElement | null>(null);
 
 const file = ref<{ raw: File; previewUrl: string } | null>(null);
@@ -106,6 +105,22 @@ const file = ref<{ raw: File; previewUrl: string } | null>(null);
 const browseFiles = () => {
   fileUploadInput.value?.click();
 }
+
+const onDrop = (files: File[] | null) => {
+  if (!files || files.length <= 0) return
+
+  const selected = files[0];
+
+  file.value = {
+    raw: selected,
+    previewUrl: URL.createObjectURL(selected)
+  }
+}
+
+const { isOverDropZone } = useDropZone(dropZoneRef, {
+  onDrop,
+  preventDefaultForUnhandled: false,
+})
 
 onMounted(() => {
   if (fileUploadInput.value) {
