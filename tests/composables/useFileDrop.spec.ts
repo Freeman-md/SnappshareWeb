@@ -11,7 +11,7 @@ const useDropZoneMock = (await import('@vueuse/core')).useDropZone as ReturnType
 describe('useFileDrop', () => {
     let mockCallback: ReturnType<typeof vi.fn>
     let mockDropFn: (files: File[] | null) => void
-    let mockIsOver = ref(false)
+    const mockIsOver = ref(false)
 
     beforeEach(() => {
         mockCallback = vi.fn()
