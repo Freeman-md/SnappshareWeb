@@ -29,6 +29,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@testing-library/vue": "^8.1.0",
     "happy-dom": "^17.4.4",
     "vitest": "^3.1.1"
   }

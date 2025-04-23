@@ -7,18 +7,21 @@
               v-if="file.fileExtension === 'mp4'"
               name="heroicons:video-camera"
               size="34"
+              data-testid="video-icon"
             />
             <UIcon
               v-else-if="file.fileExtension === 'jpg'"
               name="material-symbols:photo-camera-outline-rounded"
               size="34"
+              data-testid="image-icon"
             />
             <UIcon
               v-else
               name="bitcoin-icons:file-outline"
               size="40"
-              class="-ml-1.5"
+              data-testid="file-icon"
             />
+
           </div>
 
           <div class="w-full space-y-1 text-gray-500">
