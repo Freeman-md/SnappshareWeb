@@ -72,6 +72,7 @@
           type="button"
           color="primary"
           label="Upload"
+          @click="startFileUpload"
         />
        </div>
       </div>
@@ -79,30 +80,12 @@
 </template>
 
 <script setup lang="ts">
-const file = ref<{ raw: File; previewUrl: string } | null>(null)
 
-const handleFile = (selected: File) => {
-  file.value = {
-    raw: selected,
-    previewUrl: URL.createObjectURL(selected),
-  }
-}
 
-const { dropZoneRef, isOverDropZone } = useFileDrop(handleFile)
-const { fileInputRef, browseFiles, setupListeners } = useFileSelector(handleFile)
+const { file, removeFile, startFileUpload, handleFileChange, getFileIcon } = useFileHelpers()
+const { dropZoneRef, isOverDropZone } = useFileDrop(handleFileChange)
+const { fileInputRef, browseFiles, setupListeners } = useFileSelector(handleFileChange)
 
-const removeFile = () => {
-  if (file.value?.previewUrl) URL.revokeObjectURL(file.value.previewUrl)
-  file.value = null
-}
-
-const getFileIcon = (mime: string) => {
-  if (mime.includes('pdf')) return 'mdi:file-pdf-box'
-  if (mime.includes('word') || mime.includes('doc')) return 'mdi:file-word-box'
-  if (mime.includes('zip') || mime.includes('rar')) return 'mdi:archive'
-  if (mime.includes('excel') || mime.includes('spreadsheet')) return 'mdi:file-excel-box'
-  return 'lucide:file'
-}
 
 onMounted(() => {
   setupListeners()

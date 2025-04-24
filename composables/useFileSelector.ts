@@ -1,4 +1,4 @@
-export function useFileSelector(onSelect: (file: File) => void) {
+export const useFileSelector = (onSelect: (file: File) => void) => {
     const fileInputRef = ref<HTMLInputElement | null>(null)
   
     const browseFiles = () => {

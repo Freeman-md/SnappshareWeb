@@ -14,14 +14,14 @@ declare global {
     }
 
     interface UploadJob {
-        id: string
+        id?: string
         fileName: string
-        fileSize: string
+        fileSize: number
         raw: File
         fileExtension: string
-        hash: string
-        totalChunks: number
-        uploadedChunks: number[]
+        hash?: string
+        totalChunks?: number
+        uploadedChunks?: number[]
         status: FileUploadStatus
         progress: number
         error?: string
