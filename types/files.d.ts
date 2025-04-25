@@ -26,4 +26,10 @@ declare global {
         progress: number
         error?: string
     }
+
+    type FileHashResult = {
+        hash: string
+        fileName: string
+        fileSize: number
+    }
 }
