@@ -4,11 +4,13 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     const statusMap = ref<Record<string, FileUploadStatus>>()
 
     const { computeHash } = useUploadWorker()
+    const { getJobByHash } = useIndexedDBStore()
 
     const createFileEntry = (file: File): UploadJob => ({
         id: '',
         fileName: file.name,
         fileSize: file.size,
+        lastModified: file.lastModified,
         raw: file,
         fileExtension: file.name.split('.').pop()?.toLowerCase() || '',
         status: 'queued',
@@ -21,10 +23,22 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         console.log('Starting upload: ', file.name)
 
         const fileEntry = createFileEntry(file)
-        fileEntries.push(fileEntry)
 
         const { hash } = await computeHash(file)
         console.log('Hash generated:', hash)
+
+        fileEntry.hash = hash
+        fileEntries.push(fileEntry)
+
+        const job = getJobByHash(hash)
+
+        if (job == null) {
+            initializeFileEntry(job)
+        }
+    }
+
+    const initializeFileEntry = async (job: UploadJob) => {
+        
     }
 
     return {
