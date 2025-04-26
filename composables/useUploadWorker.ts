@@ -1,5 +1,5 @@
 export const useUploadWorker = () => {
-    const computeHash = (file: File): Promise<FileHashResult> => {
+    const computeHash = async (file: File): Promise<FileHashResult> => {
         return new Promise((resolve, reject) => {
             const worker = new Worker(
                 new URL('@/workers/hash.worker.ts', import.meta.url),
