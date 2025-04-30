@@ -5,9 +5,9 @@ export const useIndexedDBStore = () => {
         const plainJob: UploadJob = JSON.parse(JSON.stringify(job))
 
         return plainJob
-      }
+    }
 
-      
+
     const getJobByHash = async (hash: string): Promise<UploadJob | null> => {
         const job = await get(hash) as UploadJob
 
@@ -15,17 +15,22 @@ export const useIndexedDBStore = () => {
     }
 
     const saveJob = async (job: UploadJob) => {
-        if (job?.fileEntry.fileHash == null || job.fileEntry.fileHash.trim() === "") return
+        const hash = job.fileEntry.fileHash?.trim()
 
-        await set(job.fileEntry.fileHash, toPersistedJob(job))
+        if (!hash) return false
+
+        await set(hash, toPersistedJob(job))
+
+        return true
     }
 
     const updateJobStatus = async (hash: string, status: JobStatus) => {
         const job = await getJobByHash(hash)
-        if (!job) return
 
-        job.status = status
-        await set(hash, job)
+        if (job) {
+            job.status = status
+            await set(hash, job)
+        }
     }
 
 
@@ -42,27 +47,21 @@ export const useIndexedDBStore = () => {
         await set(hash, job)
     }
 
-    const getUploadedChunkIndexes = async (hash: string): Promise<number[]> => {
+    async function getChunkIndexesByStatus(
+        hash: string,
+        status: ChunkStatus
+    ): Promise<number[]> {
         const job = await getJobByHash(hash)
-        if (!job) throw Error("Job does not exist")
+        if (!job) throw new Error(`No job for hash ${hash}`)
 
-        const uploadedChunkIndexes = job.fileEntry.chunkMap
-            ? Object.values(job.fileEntry.chunkMap).filter(chunk => chunk.status === 'success').map(chunk => chunk.index)
-            : []
-
-        return uploadedChunkIndexes
+        return Object
+            .values(job.fileEntry.chunkMap ?? {})
+            .filter(c => c.status === status)
+            .map(c => c.index)
     }
 
-    const getPendingChunkIndexes = async (hash: string): Promise<number[]> => {
-        const job = await getJobByHash(hash)
-        if (!job) throw Error("Job does not exist")
-
-        const pendingChunks = job.fileEntry.chunkMap
-            ? Object.values(job.fileEntry.chunkMap).filter(chunk => chunk.status === 'pending').map(chunk => chunk.index)
-            : []
-
-        return pendingChunks
-    }
+    const getUploadedChunkIndexes = (hash: string) => getChunkIndexesByStatus(hash, "success")
+    const getPendingChunkIndexes = (hash: string) => getChunkIndexesByStatus(hash, "pending")
 
     const initChunkMap = (totalChunks: number): Record<number, ChunkMeta> => {
         const map: Record<number, ChunkMeta> = {}
