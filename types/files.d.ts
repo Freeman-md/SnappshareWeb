@@ -68,5 +68,29 @@ declare global {
         isLockExpired: boolean
         lockedAt: string | null
         status: string
-      }      
+      }   
+      
+      interface CreateFileEntryDto {
+        fileName: string
+        fileHash: string
+        fileSize: number
+        totalChunks: number
+        expiresIn: number
+      }
+      
+      interface UploadChunkParams {
+        fileId: string
+        fileName: string
+        fileHash: string
+        chunkIndex: number
+        totalChunks: number
+        chunkFile: Blob
+        chunkHash: string
+      }
+      
+    interface UploadChunkResponse {
+        status: 'Success'|'Skipped'|'Complete'
+        uploadedChunks?: number[]
+        fileUrl?: string
+      }
 }

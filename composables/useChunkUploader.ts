@@ -1,7 +1,9 @@
+import { uploadChunk } from "~/services/uploadApi"
+
 export const useChunkUploader = () => {
     const { computeHash } = useHashWorker()
 
-    const uploadChunk = async (job: UploadJob, chunkIndex: number, chunkBlob: Blob) : Promise<CreateFileEntryResponse> => {
+    const uploadChunkItem = async (job: UploadJob, chunkIndex: number, chunkBlob: Blob) : Promise<UploadChunkResponse> => {
         const chunkHash = (await computeHash(new File([chunkBlob], 'chunk'))).toString()
 
         const formData = new FormData()
@@ -13,13 +15,18 @@ export const useChunkUploader = () => {
         formData.append('fileHash', job.fileEntry.fileHash!)
         formData.append('totalChunks', job.fileEntry.totalChunks?.toString() || '')
 
-        return await $fetch(`http://localhost:5028/file-entry/${job.fileEntry.id}/upload`, {
-            method: 'POST',
-            body: formData
-        })
+        return await uploadChunk({
+            fileId:       job.fileEntry.id!,
+            fileName:     job.fileEntry.fileName!,
+            fileHash:     job.fileEntry.fileHash!,
+            chunkIndex:   chunkIndex,
+            totalChunks:  job.fileEntry.totalChunks!,
+            chunkFile:    chunkBlob,
+            chunkHash:    chunkHash
+          })
     }
 
     return {
-        uploadChunk
+        uploadChunkItem
     }
 }

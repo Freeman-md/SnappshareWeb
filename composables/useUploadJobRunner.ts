@@ -1,5 +1,7 @@
+import { finalizeUpload } from "~/services/uploadApi"
+
 export const useUploadJobRunner = () => {
-    const { uploadChunk } = useChunkUploader()
+    const { uploadChunkItem } = useChunkUploader()
     const { saveJob } = useIndexedDBStore()
     const CHUNK_SIZE = 5 * 1024 * 1024
 
@@ -23,7 +25,7 @@ export const useUploadJobRunner = () => {
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
                 const chunkBlob = sliceChunk(file, index)
-                const res = await uploadChunk(job, index, chunkBlob)
+                const res = await uploadChunkItem(job, index, chunkBlob)
 
                 if (['success', 'skipped'].includes(res.status.toLowerCase())) {
                     job.fileEntry.chunkMap![index].status = 'success'
@@ -48,10 +50,7 @@ export const useUploadJobRunner = () => {
 
     const finalizeUploadJob = async (job: UploadJob) => {
         try {
-            const response = await $fetch<CreateFileEntryResponse>(
-                `http://localhost:5028/file-entry/${job.fileEntry.id}/finalize`,
-                { method: 'POST' }
-            )
+            const response = await finalizeUpload(job.fileEntry.id!)
 
             if (response.status.toLowerCase() == 'complete') {
                 job.status = 'done'

@@ -1,3 +1,4 @@
+import { createFileEntry } from "~/services/uploadApi"
 import { ExpiryDuration } from "~/types/expiry-duration"
 
 export const useFileUploadsStore = defineStore('file-uploads', () => {
@@ -39,10 +40,10 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         const existingJob = await getJobByHash(hash)
 
         if (!existingJob) {
-            const response = await createFileEntry(job)
+            const response = await createFileEntryItem(job)
 
             prepareUploadJob(job, response)
-            
+
             await saveJob(job)
         } else {
             job.fileEntry.id = existingJob.fileEntry.id
@@ -55,7 +56,7 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         runUploadJob(job, file)
     }
 
-    const createFileEntry = async (job: UploadJob) => {
+    const createFileEntryItem = async (job: UploadJob) => {
         const totalChunks = Math.ceil(job.fileEntry.fileSize! / (CHUNK_SIZE_IN_MB * 1024 * 1024))
 
         const fileEntry: FileEntry = {
@@ -65,9 +66,12 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         }
 
         try {
-            const response = await $fetch<CreateFileEntryResponse>('http://localhost:5028/file-entry/create', {
-                method: 'POST',
-                body: fileEntry
+            const response = await createFileEntry({
+                fileName: fileEntry.fileName!,
+                fileHash: fileEntry.fileHash!,
+                fileSize: fileEntry.fileSize!,
+                totalChunks: fileEntry.totalChunks!,
+                expiresIn: fileEntry.expiresIn!
             })
 
             return response

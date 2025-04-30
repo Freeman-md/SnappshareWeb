@@ -14,6 +14,12 @@ export default defineNuxtConfig({
     }
   },
 
+  runtimeConfig: {
+    public: {
+      apiBase: ''
+    }
+  },
+
   modules: [
     '@nuxt/eslint',
     '@nuxt/fonts',
