@@ -25,6 +25,7 @@ declare global {
         fileSize?: number,
         fileUrl?: string,
         totalChunks?: number
+        uploadedChunks?: number[]
         expiresIn?: ExpiryDuration
         lastModified?: number
         chunkMap?: Record<number, ChunkMeta>

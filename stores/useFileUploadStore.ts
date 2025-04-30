@@ -32,7 +32,6 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         uploadJobs.push(job)
 
         const { hash } = await computeHash(file)
-        console.log('Hash generated:', hash)
 
         job.fileEntry.fileHash = hash
         job.status = 'hashing'

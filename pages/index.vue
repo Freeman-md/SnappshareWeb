@@ -17,17 +17,16 @@
 
       <div class="space-y-3">
         <div v-if="uploadJobs.length <= 0" class="flex flex-col items-center justify-center space-y-4">
-            <DotLottieVue style="height: 200px; width: 200px" autoplay loop src="https://lottie.host/f15e5963-2482-4d9f-a717-80f03743c386/IX6iMwWfsx.lottie" />
+          <ClientOnly>
+            <DotLottieVue style="height: 200px; width: 200px" autoplay loop
+              src="https://lottie.host/f15e5963-2482-4d9f-a717-80f03743c386/IX6iMwWfsx.lottie" />
+          </ClientOnly>
 
-            <p>No files uploaded yet. Please upload a file to see the process.</p>
+          <p>No files uploaded yet. Please upload a file to see the process.</p>
         </div>
         <template v-else>
-          <UploadJob
-          v-for="(uploadJob, index) in uploadJobs"
-          :key="index"
-          :upload-job="uploadJob"
-          class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full"
-        />
+          <UploadJob v-for="(uploadJob, index) in uploadJobs" :key="index" :upload-job="uploadJob"
+            class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full" />
         </template>
       </div>
     </section>
