@@ -95,8 +95,6 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         if (existingJob) {
           try {
             const remoteFile = await getFileEntryById(existingJob.fileEntry.id!)
-
-            console.log(remoteFile)
       
             const now = new Date()
             const expiresAt = new Date(remoteFile.expiresAt ?? 0)
