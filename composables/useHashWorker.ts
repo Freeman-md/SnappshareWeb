@@ -1,4 +1,4 @@
-export const useUploadWorker = () => {
+export const useHashWorker = () => {
     const computeHash = async (file: File): Promise<FileHashResult> => {
         return new Promise((resolve, reject) => {
             const worker = new Worker(

@@ -1,38 +1,45 @@
-export {}
+import type { ExpiryDuration } from "./expiry-duration"
+
+export { }
 
 declare global {
     type FileEntryStatus = "pending" | "completed" | "failed"
-    type FileUploadStatus = 'queued' | 'hashing' | 'uploading' | 'finalizing' | 'done' | 'failed'
+    type JobStatus = 'queued' | 'hashing' | 'uploading' | 'finalizing' | 'done' | 'failed'
     type ChunkStatus = 'pending' | 'success' | 'failed'
 
-
-    interface FileEntry {
-        id: string
+    interface FetchError extends Error {
+        statusCode?: number
+        statusMessage?: string
+        data?: object
+        response?: {
+          _data: object
+        }
+    }
+      
+    type FileEntry = {
+        id?: string
         fileName: string
+        fileHash?: string
         fileExtension: string
-        status: FileEntryStatus,
+        status?: FileEntryStatus,
         fileSize?: number,
         fileUrl?: string,
+        totalChunks?: number
+        expiresIn?: ExpiryDuration
+        lastModified: number
+        chunkMap?: Record<number, ChunkMeta>
     }
 
-    interface ChunkMeta {
+    type ChunkMeta = {
         index: number
         status: ChunkStatus
         lastTriedAt?: number
         error?: string
-      }
+    }
 
-    interface UploadJob {
-        id?: string
-        fileName: string
-        fileSize: number
-        lastModified: number
-        raw: File
-        fileExtension: string
-        hash?: string
-        totalChunks?: number
-        chunkMap?: Record<number, ChunkMeta>
-        status: FileUploadStatus
+    type UploadJob = {
+        fileEntry: FileEntry,
+        status: JobStatus
         progress: number
         error?: string
     }
@@ -42,4 +49,23 @@ declare global {
         fileName: string
         fileSize: number
     }
+
+    type CreateFileEntryResponse = {
+        id: string
+        fileName: string
+        fileExtension: string | null
+        fileSize: number
+        fileHash: string
+        totalChunks: number
+        uploadedChunks: number[]
+        chunks: any[]
+        createdAt: string
+        updatedAt: string
+        expiresIn: string
+        fileUrl: string | null
+        isLocked: boolean
+        isLockExpired: boolean
+        lockedAt: string | null
+        status: string
+      }      
 }

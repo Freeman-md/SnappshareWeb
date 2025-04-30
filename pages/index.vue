@@ -9,23 +9,23 @@
       </p>
     </section>
 
-    <FileDropZone />
+    <DropZone />
 
     <!-- Uploaded Files -->
     <section id="files" class="space-y-6 container mx-auto mb-10">
       <h3 class="text-xl font-semibold ml-4 sm:ml-0">Files</h3>
 
       <div class="space-y-3">
-        <div v-if="fileEntries.length <= 0" class="flex flex-col items-center justify-center space-y-4">
+        <div v-if="uploadJobs.length <= 0" class="flex flex-col items-center justify-center space-y-4">
             <DotLottieVue style="height: 200px; width: 200px" autoplay loop src="https://lottie.host/598db9fd-d177-48cc-bfe0-94c479217a2f/aHLNfxG65c.lottie" />
 
             <p>No files uploaded yet. Please upload a file to see the process.</p>
         </div>
         <template v-else>
-          <FileListItem
-          v-for="(fileEntry, index) in fileEntries"
+          <UploadJob
+          v-for="(uploadJob, index) in uploadJobs"
           :key="index"
-          :file-entry="fileEntry"
+          :uploadJob="uploadJob"
           class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full"
         />
         </template>
@@ -39,5 +39,5 @@ import { DotLottieVue } from '@lottiefiles/dotlottie-vue'
 
 
 const store = useFileUploadsStore()
-const { fileEntries } = storeToRefs(store)
+const { uploadJobs } = storeToRefs(store)
 </script>
