@@ -16,7 +16,7 @@
         <slot />
 
         <footer class="container mx-auto text-center py-4 border-t border-gray-200 text-gray;500">
-            SnappShare &copy; {{ year }}. Built by <NuxtLink to="https://freemanmadudili.com" external class="text-green-500">Freemancodz</NuxtLink>
+            SnappShare &copy; {{ year }}. Built by <NuxtLink to="https://freemanmadudili.com" external class="text-primary font-bold">Freemancodz</NuxtLink>
         </footer>
     </div>
 </template>

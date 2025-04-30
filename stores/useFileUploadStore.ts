@@ -71,8 +71,6 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
                 body: fileEntry
             })
 
-            console.log('File entry created:', response)
-
             return response
         } catch (error: any) {
             const responseData = error.response?._data
