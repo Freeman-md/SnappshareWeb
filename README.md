@@ -4,6 +4,11 @@ SnappShare is a secure file-sharing platform that supports chunked and resumable
 
 ---
 
+## 🌐 Live App
+👉 [Check it out](https://snappshare-web.vercel.app)
+
+---
+
 ## 🌐 Tech Stack
 
 - **Nuxt 3** - Vue 3-powered SSR and client-side rendering
@@ -83,22 +88,9 @@ yarn build && yarn preview
 
 ---
 
-## 📌 TODO
-
-- [ ] Auth integration
-- [ ] Admin dashboard
-
----
-
 ## 🙌 Contributing
 
 1. Fork repo
 2. Create feature branch
 3. Commit & PR with context
-
----
-
-## 📜 License
-
-MIT © 2025 Freeman (Freemancodz)
 
