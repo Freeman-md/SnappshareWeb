@@ -26,7 +26,7 @@ declare global {
         fileUrl?: string,
         totalChunks?: number
         expiresIn?: ExpiryDuration
-        lastModified: number
+        lastModified?: number
         chunkMap?: Record<number, ChunkMeta>
     }
 
