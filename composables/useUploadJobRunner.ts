@@ -1,87 +1,120 @@
-import { finalizeUpload } from "~/services/uploadApi"
+import { finalizeUpload as apiFinalizeUpload, uploadChunk as apiUploadChunk } from '~/services/uploadApi'
 
 export const useUploadJobRunner = () => {
-    const { uploadChunkItem } = useChunkUploader()
-    const { saveJob } = useIndexedDBStore()
-    const CHUNK_SIZE = 5 * 1024 * 1024
+  const CHUNK_SIZE = 5 * 1024 * 1024 // 5 MB
+  const { computeHash } = useHashWorker()
+  const { saveJob } = useIndexedDBStore()
 
-    const sliceChunk = (file: File, index: number) => {
-        const start = index * CHUNK_SIZE
-        const end = Math.min(file.size, start + CHUNK_SIZE)
-        return file.slice(start, end)
-    }
+  /** Slice out a single chunk by index */
+  const sliceChunk = (file: File, index: number): Blob => {
+    const start = index * CHUNK_SIZE
+    const end   = Math.min(file.size, start + CHUNK_SIZE)
+    return file.slice(start, end)
+  }
 
-    const getPendingChunks = (job: UploadJob) =>
-        Object.values(job.fileEntry.chunkMap ?? {})
-            .filter(chunk => chunk.status === 'pending')
-            .map(chunk => chunk.index)
+  /** Pending chunk indexes from the job’s chunkMap */
+  const getPendingIndexes = (job: UploadJob): number[] =>
+    Object.values(job.fileEntry.chunkMap ?? {})
+      .filter(c => c.status === 'pending')
+      .map(c => c.index)
 
-    const getChunkProgress = (job: UploadJob) =>
-        Math.ceil(100 / Object.keys(job.fileEntry.chunkMap ?? {}).length)
+  /** How much percent each chunk contributes */
+  const perChunkProgress = (job: UploadJob): number =>
+    Math.ceil(100 / (job.fileEntry.totalChunks! || 1))
 
-    const uploadWithRetry = async (job: UploadJob, file: File, index: number) => {
-        const progressPerChunk = getChunkProgress(job)
+  /**
+   * Upload one chunk, retry up to 3 times, update status+progress, persist each change.
+   */
+  const uploadWithRetry = async (job: UploadJob, file: File, index: number) => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        // 1. slice, 2. hash, 3. API call
+        const blob = sliceChunk(file, index)
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                const chunkBlob = sliceChunk(file, index)
-                const res = await uploadChunkItem(job, index, chunkBlob)
-
-                if (['success', 'skipped'].includes(res.status.toLowerCase())) {
-                    job.fileEntry.chunkMap![index].status = 'success'
-                    job.progress += progressPerChunk
-                    await saveJob(job)
-                    return
-                }
-            } catch {
-                console.warn(`[Retry Attempt ${attempt}] Chunk ${index} failed for ${job.fileEntry.fileName}`)
-            }
-        }
-
-        job.fileEntry.chunkMap![index].status = 'failed'
-        await saveJob(job)
-    }
-
-    const uploadChunkBatch = async (job: UploadJob, file: File, chunkIndexes: number[]) => {
-        await Promise.allSettled(
-            chunkIndexes.map(index => uploadWithRetry(job, file, index))
+        const { hash: chunkHash } = await computeHash(
+          new File([blob], `${job.fileEntry.fileName}.part${index}`)
         )
-    }
 
-    const finalizeUploadJob = async (job: UploadJob) => {
-        try {
-            const response = await finalizeUpload(job.fileEntry.id!)
+        const res = await apiUploadChunk({
+          fileId:       job.fileEntry.id!,
+          fileName:     job.fileEntry.fileName!,
+          fileHash:     job.fileEntry.fileHash!,
+          chunkIndex:   index,
+          totalChunks:  job.fileEntry.totalChunks!,
+          chunkFile:    blob,
+          chunkHash,
+        })
 
-            if (response.status.toLowerCase() == 'complete') {
-                job.status = 'done'
-                job.fileEntry.fileUrl = response.fileUrl!
-                await saveJob(job)
-
-                console.log(`✅ Upload finalized for ${job.fileEntry.fileName}. File URL: ${job.fileEntry.fileUrl}`)
-            }
-        } catch (error: any) {
-            job.status = 'failed'
-            await saveJob(job)
-
-            console.error(`❌ Failed to finalize upload for ${job.fileEntry.fileName}`, error)
+        if (['success','skipped'].includes(res.status.toLowerCase())) {
+          job.fileEntry.chunkMap![index].status = 'success'
+          job.progress += perChunkProgress(job)
+          await saveJob(job)
+          return
         }
+      } catch (err) {
+        console.warn(`Retry ${attempt} failed for chunk ${index}:`, err)
+      }
     }
 
-    const runUploadJob = async (job: UploadJob, file: File) => {
-        const pending = getPendingChunks(job)
-        while (pending.length > 0) {
-            const nextBatch = pending.splice(0, 3)
-            await uploadChunkBatch(job, file, nextBatch)
-        }
+    // all retries exhausted
+    job.fileEntry.chunkMap![index].status = 'failed'
+    await saveJob(job)
+  }
 
-        console.log('✅ Chunks Upload complete for:', job.fileEntry.fileName)
+  /**
+   * Fire chunk uploads in batches of up to `batchSize` parallel tasks.
+   */
+  const uploadInBatches = async (job: UploadJob, file: File, batchSize = 3) => {
+    const pending = getPendingIndexes(job)
 
-        job.status = 'finalizing'
+    for (let i = 0; i < pending.length; i += batchSize) {
+      const batch = pending.slice(i, i + batchSize)
+      
+      await Promise.all(batch.map(idx => uploadWithRetry(job, file, idx)))
+    }
+  }
 
-        finalizeUploadJob(job)
+  /**
+   * Once chunks done, call finalize and persist the final URL or error.
+   */
+  const finalizeJob = async (job: UploadJob) => {
+    try {
+      const resp = await apiFinalizeUpload(job.fileEntry.id!)
+
+      if (resp.status.toLowerCase() === 'complete') {
+        job.status = 'done'
+        job.fileEntry.fileUrl = resp.fileUrl!
+        await saveJob(job)
+
+        console.log(`✅ Finalized: ${job.fileEntry.fileName}`)
+      } else {
+        throw new Error(`Finalize returned ${resp.status}`)
+      }
+    } catch (err) {
+      job.status = 'failed'
+      await saveJob(job)
+
+      console.error(`❌ Finalize failed for ${job.fileEntry.fileName}`, err)
+    }
+  }
+
+  /**
+   * Orchestrator: batch‐upload → finalize.
+   */
+  const runUploadJob = async (job: UploadJob, file: File) => {
+    job.status = 'uploading'
+    await saveJob(job)
+
+    if (getPendingIndexes(job).length > 0) {
+      await uploadInBatches(job, file)
+      console.log('✅ All chunks uploaded for', job.fileEntry.fileName)
     }
 
-    return {
-        runUploadJob
-    }
+    job.status = 'finalizing'
+    await saveJob(job)
+
+    await finalizeJob(job)
+  }
+
+  return { runUploadJob }
 }
