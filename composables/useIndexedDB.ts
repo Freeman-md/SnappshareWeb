@@ -1,6 +1,6 @@
 import { del, entries, get, set } from 'idb-keyval'
 
-export const useIndexedDBStore = () => {
+export const useIndexedDB = () => {
     const toPersistedJob = (job: UploadJob): UploadJob => {
         const plainJob: UploadJob = JSON.parse(JSON.stringify(job))
 

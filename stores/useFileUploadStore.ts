@@ -1,16 +1,12 @@
-import { defineStore } from 'pinia'
-import { createFileEntry } from '~/services/uploadApi'
-import { useHashWorker } from '~/composables/useHashWorker'
-import { useIndexedDBStore } from '~/composables/useIndexedDBStore'
-import { useUploadJobRunner } from '~/composables/useUploadJobRunner'
-import { ExpiryDuration } from '~/types/expiry-duration'
+import { createFileEntry } from "~/services/uploadApi"
+import { ExpiryDuration } from "~/types/expiry-duration"
 
 export const useFileUploadsStore = defineStore('file-uploads', () => {
     const CHUNK_SIZE = 5 * 1024 * 1024 // 5 MB
     const uploadJobs = reactive<UploadJob[]>([])
 
     const { computeHash } = useHashWorker()
-    const { getJobByHash, saveJob, initChunkMap } = useIndexedDBStore()
+    const { getJobByHash, saveJob, initChunkMap } = useIndexedDB()
     const { runUploadJob } = useUploadJobRunner()
     const toast = useToast()
 

@@ -3,7 +3,8 @@ import { finalizeUpload as apiFinalizeUpload, uploadChunk as apiUploadChunk } fr
 export const useUploadJobRunner = () => {
     const CHUNK_SIZE = 5 * 1024 * 1024 // 5 MB
     const { computeHash } = useHashWorker()
-    const { saveJob, updateJobStatus } = useIndexedDBStore()
+    const { saveJob, updateJobStatus } = useIndexedDB()
+    const toast = useToast()
 
     /** Slice out a single chunk by index */
     const sliceChunk = (file: File, index: number): Blob => {
@@ -52,7 +53,11 @@ export const useUploadJobRunner = () => {
                     return
                 }
             } catch (err) {
-                console.warn(`Retry ${attempt} failed for chunk ${index}:`, err)
+                toast.add({
+                    title: `Retry failed`,
+                    description: `Retry attempt ${attempt} failed for chunk ${index}`,
+                    color: 'warning',
+                })
             }
         }
 
@@ -79,21 +84,38 @@ export const useUploadJobRunner = () => {
      */
     const finalizeJob = async (job: UploadJob) => {
         try {
-            const resp = await apiFinalizeUpload(job.fileEntry.id!)
+            const response = await apiFinalizeUpload(job.fileEntry.id!)
 
-            if (resp.status.toLowerCase() === 'complete') {
+            if (response.status.toLowerCase() === 'complete') {
                 job.status = 'done'
-                job.fileEntry.fileUrl = resp.fileUrl!
+                job.fileEntry.fileUrl = response.fileUrl!
                 await saveJob(job)
 
-                console.log(`✅ Finalized: ${job.fileEntry.fileName}`)
+                toast.add({
+                    title: `✅ Finalized: ${job.fileEntry.fileName}`,
+                    description: `${response.message}`,
+                    color: 'success',
+                    actions: [{
+                        icon: 'lucide:external-link',
+                        label: 'View',
+                        color: 'neutral',
+                        variant: 'outline',
+                        onClick: () => {
+                          window.open(response.fileUrl)
+                        }
+                      }]
+                })
             } else {
-                throw new Error(`Finalize returned ${resp.status}`)
+                throw new Error(`Finalize returned ${response.status}`)
             }
         } catch (err) {
             updateJobStatus(job.fileEntry.fileHash ?? '', 'failed')
 
-            console.error(`❌ Finalize failed for ${job.fileEntry.fileName}`, err)
+            toast.add({
+                title: 'Finalize Error',
+                description: `❌ Finalize failed for ${job.fileEntry.fileName}`,
+                color: 'error',
+            })
         }
     }
 
@@ -105,7 +127,12 @@ export const useUploadJobRunner = () => {
 
         if (getPendingIndexes(job).length > 0) {
             await uploadInBatches(job, file)
-            console.log('✅ All chunks uploaded for', job.fileEntry.fileName)
+
+            toast.add({
+                title: `✅ Chunks Upload Complete`,
+                description: `All chunks uploaded for ${job.fileEntry.fileName}`,
+                color: 'success',
+            })
         }
 
         updateJobStatus(job.fileEntry.fileHash ?? '', 'finalizing')

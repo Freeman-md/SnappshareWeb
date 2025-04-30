@@ -92,5 +92,6 @@ declare global {
         status: 'Success'|'Skipped'|'Complete'
         uploadedChunks?: number[]
         fileUrl?: string
+        message: string
       }
 }
