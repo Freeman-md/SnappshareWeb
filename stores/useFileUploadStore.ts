@@ -6,7 +6,7 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     const uploadJobs = reactive<UploadJob[]>([])
 
     const { computeHash } = useHashWorker()
-    const { getJobByHash, saveJob, initChunkMap } = useIndexedDB()
+    const { getJobByHash, getAllJobs, saveJob, initChunkMap } = useIndexedDB()
     const { runUploadJob } = useUploadJobRunner()
     const toast = useToast()
 
@@ -31,7 +31,7 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
             fileHash: job.fileEntry.fileHash!,
             fileSize: job.fileEntry.fileSize!,
             totalChunks,
-            expiresIn: ExpiryDuration.OneMinute,
+            expiresIn: ExpiryDuration.OneDay,
         }
     }
 
@@ -71,29 +71,29 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     }
 
     // ——— Action: Start Upload ———
-
     const startUpload = async (file: File) => {
         if (!file) return
 
-        const job = createUploadJob(file)
-        uploadJobs.push(job)
-
-        job.status = 'hashing'
         const { hash } = await computeHash(file)
-        job.fileEntry.fileHash = hash
+
+        let job = uploadJobs.find(j => j.fileEntry.fileHash === hash)
+
+        if (job) {
+            toast.add({
+                description: `📦 Reusing existing job for hash ${hash}`,
+                color: 'info'
+            })
+        } else {
+
+            job = createUploadJob(file)
+            job.fileEntry.fileHash = hash
+            job.status = 'hashing'
+            uploadJobs.unshift(job)
+        }
 
         const existingJob = await getJobByHash(hash)
 
-        if (existingJob) {
-            Object.assign(job.fileEntry, {
-                id: existingJob.fileEntry.id,
-                chunkMap: existingJob.fileEntry.chunkMap,
-                totalChunks: existingJob.fileEntry.totalChunks,
-            })
-
-            job.status = existingJob.status
-            job.progress = existingJob.progress
-        } else {
+        if (!existingJob) {
             try {
                 const dto = buildFileEntryDto(job)
 
@@ -111,8 +111,40 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
         runUploadJob(job, file)
     }
 
+    const loadPersistedJobs = async () => {
+        const all = await getAllJobs()
+
+        const statusOrder: Record<JobStatus, number> = {
+            queued: 0,
+            hashing: 1,
+            uploading: 2,
+            finalizing: 3,
+            failed: 4,
+            done: 5 // done always last
+        }
+
+        const sortedJobs = all
+            .map(([_, job]) => job)
+            .sort((a, b) => {
+                const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+                if (statusDiff !== 0) return statusDiff
+                return a.progress - b.progress // sort by progress if same status
+            })
+
+        sortedJobs.forEach(job => {
+            uploadJobs.push(reactive(job))
+        })
+
+        toast.add({
+            title: 'Restored Jobs',
+            description: `🔁 Restored ${sortedJobs.length} persisted jobs`,
+            color: 'success'
+        })
+    }
+
     return {
         uploadJobs,
         startUpload,
+        loadPersistedJobs
     }
 })

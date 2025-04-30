@@ -39,4 +39,8 @@ import { DotLottieVue } from '@lottiefiles/dotlottie-vue'
 
 const store = useFileUploadsStore()
 const { uploadJobs } = storeToRefs(store)
+
+onMounted(() => {
+  store.loadPersistedJobs()
+})
 </script>
