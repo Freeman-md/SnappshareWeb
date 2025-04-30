@@ -18,11 +18,9 @@ export const useIndexedDBStore = () => {
         if (job?.fileEntry.fileHash == null || job.fileEntry.fileHash.trim() === "") return
 
         await set(job.fileEntry.fileHash, toPersistedJob(job))
-
-        console.log(`Job with hash ${job.fileEntry.fileHash} set`)
     }
 
-    const updateJobStatus = async (hash: string, status: FileUploadStatus) => {
+    const updateJobStatus = async (hash: string, status: JobStatus) => {
         const job = await getJobByHash(hash)
         if (!job) return
 

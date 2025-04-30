@@ -17,7 +17,7 @@
 
       <div class="space-y-3">
         <div v-if="uploadJobs.length <= 0" class="flex flex-col items-center justify-center space-y-4">
-            <DotLottieVue style="height: 200px; width: 200px" autoplay loop src="https://lottie.host/598db9fd-d177-48cc-bfe0-94c479217a2f/aHLNfxG65c.lottie" />
+            <DotLottieVue style="height: 200px; width: 200px" autoplay loop src="https://lottie.host/f15e5963-2482-4d9f-a717-80f03743c386/IX6iMwWfsx.lottie" />
 
             <p>No files uploaded yet. Please upload a file to see the process.</p>
         </div>

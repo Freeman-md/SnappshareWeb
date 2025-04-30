@@ -46,6 +46,28 @@ export const useUploadJobRunner = () => {
         )
     }
 
+    const finalizeUploadJob = async (job: UploadJob) => {
+        try {
+            const response = await $fetch<CreateFileEntryResponse>(
+                `http://localhost:5028/file-entry/${job.fileEntry.id}/finalize`,
+                { method: 'POST' }
+            )
+
+            if (response.status.toLowerCase() == 'complete') {
+                job.status = 'done'
+                job.fileEntry.fileUrl = response.fileUrl!
+                await saveJob(job)
+
+                console.log(`✅ Upload finalized for ${job.fileEntry.fileName}. File URL: ${job.fileEntry.fileUrl}`)
+            }
+        } catch (error: any) {
+            job.status = 'failed'
+            await saveJob(job)
+
+            console.error(`❌ Failed to finalize upload for ${job.fileEntry.fileName}`, error)
+        }
+    }
+
     const runUploadJob = async (job: UploadJob, file: File) => {
         const pending = getPendingChunks(job)
         while (pending.length > 0) {
@@ -54,6 +76,10 @@ export const useUploadJobRunner = () => {
         }
 
         console.log('✅ Chunks Upload complete for:', job.fileEntry.fileName)
+
+        job.status = 'finalizing'
+
+        finalizeUploadJob(job)
     }
 
     return {

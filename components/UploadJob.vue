@@ -27,9 +27,9 @@
           <div class="w-full space-y-1 text-gray-500">
             <div class="flex justify-between space-x-4 items-start">
               <p class="text-black font-medium">{{ uploadJob.fileEntry.fileName }}</p>
-              <NuxtLink :to="`/files/${uploadJob.fileEntry.id}`">
+              <a v-if="uploadJob.fileEntry.fileUrl" :href="uploadJob.fileEntry.fileUrl">
                 <UIcon name="lucide:external-link" size="20" class="text-green-500" />
-              </NuxtLink>
+              </a>
             </div>
             <small>{{ fileSizeInMb }} MB</small>
             <UProgress v-model="jobProgress" color="primary" :max="100" />
