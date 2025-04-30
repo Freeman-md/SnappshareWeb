@@ -1,18 +1,21 @@
-import { createFileEntry } from "~/services/uploadApi"
-import { ExpiryDuration } from "~/types/expiry-duration"
+import { defineStore } from 'pinia'
+import { createFileEntry } from '~/services/uploadApi'
+import { useHashWorker } from '~/composables/useHashWorker'
+import { useIndexedDBStore } from '~/composables/useIndexedDBStore'
+import { useUploadJobRunner } from '~/composables/useUploadJobRunner'
+import { ExpiryDuration } from '~/types/expiry-duration'
 
 export const useFileUploadsStore = defineStore('file-uploads', () => {
-    const CHUNK_SIZE_IN_MB = 5
+    const CHUNK_SIZE = 5 * 1024 * 1024 // 5 MB
     const uploadJobs = reactive<UploadJob[]>([])
-    const progressMap = ref<Record<string, number> | null>(null)
-    const statusMap = ref<Record<string, JobStatus>>()
 
     const { computeHash } = useHashWorker()
     const { getJobByHash, saveJob, initChunkMap } = useIndexedDBStore()
     const { runUploadJob } = useUploadJobRunner()
     const toast = useToast()
 
-    const initializeJob = (file: File): UploadJob => reactive({
+
+    const createUploadJob = (file: File): UploadJob => reactive({
         fileEntry: {
             fileName: file.name,
             fileSize: file.size,
@@ -20,107 +23,100 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
             lastModified: file.lastModified,
         },
         status: 'queued',
-        progress: 0
+        progress: 0,
     })
 
+    const buildFileEntryDto = (job: UploadJob): CreateFileEntryDto => {
+        const totalChunks = Math.ceil((job.fileEntry.fileSize ?? 0) / CHUNK_SIZE)
+        job.fileEntry.totalChunks = totalChunks
+
+        return {
+            fileName: job.fileEntry.fileName!,
+            fileHash: job.fileEntry.fileHash!,
+            fileSize: job.fileEntry.fileSize!,
+            totalChunks,
+            expiresIn: ExpiryDuration.OneMinute,
+        }
+    }
+
+    const integrateCreateFileEntryResponse = (job: UploadJob, res: CreateFileEntryResponse) => {
+        job.fileEntry.id = res.id
+        job.fileEntry.totalChunks = res.totalChunks
+        job.fileEntry.chunkMap = initChunkMap(res.totalChunks)
+        job.status = 'uploading'
+        job.progress = 0
+
+        if (typeof res.uploadedChunks == 'object') {
+            res.uploadedChunks?.forEach(idx => {
+                job.fileEntry.chunkMap![idx].status = 'success'
+            })
+        }
+    }
+
+    const notifyFileEntryError = (err: unknown) => {
+        const responseData = (err as any)?.response?._data
+
+        if (responseData?.errors) {
+            const messages = Object.values(responseData.errors).flat()
+            for (const message of messages) {
+                toast.add({
+                    title: 'Upload Error',
+                    description: message as string,
+                    color: 'error',
+                })
+            }
+        } else {
+            toast.add({
+                title: 'Upload Error',
+                description: (err as Error)?.message ?? 'Unknown error occurred',
+                color: 'error',
+            })
+        }
+    }
+
+    // ——— Action: Start Upload ———
 
     const startUpload = async (file: File) => {
         if (!file) return
 
-        console.log('Starting upload:', file.name)
-
-        const job = initializeJob(file)
+        const job = createUploadJob(file)
         uploadJobs.push(job)
 
-        const { hash } = await computeHash(file)
-
-        job.fileEntry.fileHash = hash
         job.status = 'hashing'
+        const { hash } = await computeHash(file)
+        job.fileEntry.fileHash = hash
 
         const existingJob = await getJobByHash(hash)
 
-        if (!existingJob) {
-            const response = await createFileEntryItem(job)
+        if (existingJob) {
+            Object.assign(job.fileEntry, {
+                id: existingJob.fileEntry.id,
+                chunkMap: existingJob.fileEntry.chunkMap,
+                totalChunks: existingJob.fileEntry.totalChunks,
+            })
 
-            prepareUploadJob(job, response)
-
-            await saveJob(job)
-        } else {
-            job.fileEntry.id = existingJob.fileEntry.id
-            job.fileEntry.chunkMap = existingJob.fileEntry.chunkMap
-            job.fileEntry.totalChunks = existingJob.fileEntry.totalChunks
             job.status = existingJob.status
             job.progress = existingJob.progress
+        } else {
+            try {
+                const dto = buildFileEntryDto(job)
+
+                const response = await createFileEntry(dto)
+
+                integrateCreateFileEntryResponse(job, response)
+
+                await saveJob(job)
+            } catch (err) {
+                notifyFileEntryError(err)
+                return
+            }
         }
 
         runUploadJob(job, file)
     }
 
-    const createFileEntryItem = async (job: UploadJob) => {
-        const totalChunks = Math.ceil(job.fileEntry.fileSize! / (CHUNK_SIZE_IN_MB * 1024 * 1024))
-
-        const fileEntry: FileEntry = {
-            ...job.fileEntry,
-            totalChunks,
-            expiresIn: ExpiryDuration.OneMinute
-        }
-
-        try {
-            const response = await createFileEntry({
-                fileName: fileEntry.fileName!,
-                fileHash: fileEntry.fileHash!,
-                fileSize: fileEntry.fileSize!,
-                totalChunks: fileEntry.totalChunks!,
-                expiresIn: fileEntry.expiresIn!
-            })
-
-            return response
-        } catch (error: any) {
-            const responseData = error.response?._data
-
-            if (responseData?.errors) {
-                Object.keys(responseData.errors).forEach(key => {
-                    const errorMessage = responseData.errors[key]
-
-                    if (errorMessage?.[0]) {
-                        toast.add({
-                            title: 'Error',
-                            description: errorMessage[0],
-                            color: 'error'
-                        })
-                    }
-                })
-            } else {
-                toast.add({
-                    title: 'Error',
-                    description: error.message || 'Unknown error occurred',
-                    color: 'error'
-                })
-            }
-            throw error
-        }
-    }
-
-    const prepareUploadJob = (job: UploadJob, response: CreateFileEntryResponse) => {
-        job.fileEntry.id = response.id
-        job.fileEntry.totalChunks = response.totalChunks
-        job.fileEntry.chunkMap = initChunkMap(response.totalChunks)
-        job.status = 'uploading'
-        job.progress = 0
-
-        if (response.uploadedChunks) {
-            response.uploadedChunks.forEach(idx => {
-                if (job.fileEntry.chunkMap && job.fileEntry.chunkMap[idx]) {
-                    job.fileEntry.chunkMap[idx].status = 'success'
-                }
-            })
-        }
-    }
-
     return {
         uploadJobs,
-        progressMap,
-        statusMap,
-        startUpload
+        startUpload,
     }
 })
