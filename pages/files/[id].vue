@@ -49,7 +49,7 @@
 
                 <small class="text-black font-medium">Upload Progress</small>
 
-                <UProgress v-model="uploadProgress" color="primary" :max="100" />
+                <UProgress v-model="uploadProgress" color="primary" :max="100" status />
 
                 <small class="capitalize">{{ file.status }}</small>
 
@@ -57,8 +57,10 @@
                     <label for="file-url" class="text-black font-medium">File URL</label>
 
                     <div class="w-full border rounded-lg border-gray-300 flex overflow-hidden">
-                        <input id="fileUrl" type="text" name="fileUrl" :value="file.fileUrl" readonly
+                        <input v-if="file.fileUrl" id="fileUrl" type="text" name="fileUrl" :value="file.fileUrl" readonly
                             class="w-full px-4 text-black">
+
+                            <p v-else class="p-2">Not Available Yet</p>
 
                         <a v-if="file.fileUrl" :href="file.fileUrl" class="btn rounded-none p-2 px-3">
                             <UIcon name="lucide:external-link" size="24" />

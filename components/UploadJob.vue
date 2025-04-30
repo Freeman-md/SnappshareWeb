@@ -32,7 +32,7 @@
               </NuxtLink>
             </div>
             <small>{{ fileSizeInMb }} MB</small>
-            <UProgress v-model="jobProgress" color="primary" :max="100" />
+            <UProgress v-model="jobProgress" color="primary" :max="100" status />
             <small :class="['capitalize', getStatusColor(uploadJob.status)]">{{ uploadJob.status }}</small>
           </div>
         </div>
