@@ -25,7 +25,7 @@
           <UploadJob
           v-for="(uploadJob, index) in uploadJobs"
           :key="index"
-          :uploadJob="uploadJob"
+          :upload-job="uploadJob"
           class="border border-gray-200 rounded-lg p-5 flex space-x-6 items-start w-full"
         />
         </template>
