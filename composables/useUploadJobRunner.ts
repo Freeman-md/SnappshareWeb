@@ -52,7 +52,7 @@ export const useUploadJobRunner = () => {
                     await saveJob(job)
                     return
                 }
-            } catch (err) {
+            } catch {
                 toast.add({
                     title: `Retry failed`,
                     description: `Retry attempt ${attempt} failed for chunk ${index}`,
@@ -108,7 +108,7 @@ export const useUploadJobRunner = () => {
             } else {
                 throw new Error(`Finalize returned ${response.status}`)
             }
-        } catch (err) {
+        } catch {
             updateJobStatus(job.fileEntry.fileHash ?? '', 'failed')
 
             toast.add({

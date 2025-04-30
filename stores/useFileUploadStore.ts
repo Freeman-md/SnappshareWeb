@@ -1,4 +1,4 @@
-import { createFileEntry } from "~/services/uploadApi"
+import { createFileEntry, getFileEntryById } from "~/services/uploadApi"
 import { ExpiryDuration } from "~/types/expiry-duration"
 
 export const useFileUploadsStore = defineStore('file-uploads', () => {
@@ -50,7 +50,7 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     }
 
     const notifyFileEntryError = (err: unknown) => {
-        const responseData = (err as any)?.response?._data
+        const responseData = (err as { response?: { _data?: { errors?: Record<string, string[]> } } })?.response?._data
 
         if (responseData?.errors) {
             const messages = Object.values(responseData.errors).flat()
@@ -93,7 +93,12 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
 
         const existingJob = await getJobByHash(hash)
 
-        if (!existingJob) {
+        if (existingJob) {
+            // check if file is complete and has expired
+            const remoteFile = await getFileEntryById(existingJob.fileEntry.id!)
+
+            console.log(remoteFile)
+        } else {
             try {
                 const dto = buildFileEntryDto(job)
 

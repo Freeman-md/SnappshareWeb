@@ -59,7 +59,7 @@ declare global {
         fileHash: string
         totalChunks: number
         uploadedChunks: number[]
-        chunks: any[]
+        chunks: object[]
         createdAt: string
         updatedAt: string
         expiresIn: string

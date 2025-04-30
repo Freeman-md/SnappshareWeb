@@ -12,7 +12,7 @@
         <div v-else-if="status == 'error'" class="flex flex-col items-center justify-center space-y-4">
             <ClientOnly>
                 <DotLottieVue style="height: 200px; width: 200px" autoplay loop
-                src="https://lottie.host/f15e5963-2482-4d9f-a717-80f03743c386/IX6iMwWfsx.lottie" />
+                    src="https://lottie.host/f15e5963-2482-4d9f-a717-80f03743c386/IX6iMwWfsx.lottie" />
             </ClientOnly>
 
             <p>File not found.</p>
@@ -36,7 +36,7 @@
                     <small class="mr-4">
                         <strong>Status</strong>:
                         <span class="text-green-500 capitalize">{{ file.status
-                        }}</span>
+                            }}</span>
                     </small>
                     <small class="mr-4">
                         <strong>Chunks</strong>: {{ uploadedChunksLength }} of {{ file.totalChunks }}
@@ -57,10 +57,10 @@
                     <label for="file-url" class="text-black font-medium">File URL</label>
 
                     <div class="w-full border rounded-lg border-gray-300 flex overflow-hidden">
-                        <input v-if="file.fileUrl" id="fileUrl" type="text" name="fileUrl" :value="file.fileUrl" readonly
-                            class="w-full px-4 text-black">
+                        <input v-if="file.fileUrl" id="fileUrl" type="text" name="fileUrl" :value="file.fileUrl"
+                            readonly class="w-full px-4 text-black">
 
-                            <p v-else class="p-2">Not Available Yet</p>
+                        <p v-else class="p-2">Not Available Yet</p>
 
                         <a v-if="file.fileUrl" :href="file.fileUrl" class="btn rounded-none p-2 px-3">
                             <UIcon name="lucide:external-link" size="24" />
@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue'
+import { getFileEntryById } from '~/services/uploadApi'
 
 definePageMeta({
     layout: false,
@@ -92,15 +93,14 @@ const fileId = route.params.id as string
 
 const goBack = () => router.push({ name: 'index' })
 
-const { data: file, status } = await useFetch<FileEntry>(
-    `http://localhost:5028/file-entry/${fileId}`,
+const { data: file, status } = await useAsyncData(() =>
+    getFileEntryById(fileId)
 )
-
-console.log(file.value)
 
 const fileSizeInMb = ((file.value?.fileSize ?? 0) / (1024 * 1024)).toFixed(2)
 
 const uploadedChunksLength = computed(() => file.value?.uploadedChunks?.length)
 
 const uploadProgress = computed(() => parseFloat((((uploadedChunksLength.value ?? 0) / (file.value?.totalChunks ?? 1)) * 100).toFixed(2)))
+
 </script>

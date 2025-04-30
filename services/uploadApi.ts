@@ -1,3 +1,8 @@
+export async function getFileEntryById(fileId: string): Promise<FileEntry> {
+  const config = useRuntimeConfig()
+  return await $fetch<FileEntry>(`${config.public.apiBase}/file-entry/${fileId}`)
+}
+
 export async function createFileEntry(dto: CreateFileEntryDto): Promise<CreateFileEntryResponse> {
   const config = useRuntimeConfig()
   return await $fetch<CreateFileEntryResponse>(
