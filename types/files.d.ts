@@ -27,6 +27,7 @@ declare global {
         totalChunks?: number
         uploadedChunks?: number[]
         expiresIn?: ExpiryDuration
+        expiresAt?: Date,
         lastModified?: number
         chunkMap?: Record<number, ChunkMeta>
     }

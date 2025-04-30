@@ -6,7 +6,7 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     const uploadJobs = reactive<UploadJob[]>([])
 
     const { computeHash } = useHashWorker()
-    const { getJobByHash, getAllJobs, saveJob, initChunkMap } = useIndexedDB()
+    const { getJobByHash, getAllJobs, saveJob, initChunkMap, deleteJob } = useIndexedDB()
     const { runUploadJob } = useUploadJobRunner()
     const toast = useToast()
 
@@ -73,48 +73,67 @@ export const useFileUploadsStore = defineStore('file-uploads', () => {
     // ——— Action: Start Upload ———
     const startUpload = async (file: File) => {
         if (!file) return
-
+      
         const { hash } = await computeHash(file)
-
+      
         let job = uploadJobs.find(j => j.fileEntry.fileHash === hash)
-
+      
         if (job) {
-            toast.add({
-                description: `📦 Reusing existing job for hash ${hash}`,
-                color: 'info'
-            })
+          toast.add({
+            description: `📦 Reusing existing job for hash ${hash}`,
+            color: 'info',
+          })
         } else {
-
-            job = createUploadJob(file)
-            job.fileEntry.fileHash = hash
-            job.status = 'hashing'
-            uploadJobs.unshift(job)
+          job = createUploadJob(file)
+          job.fileEntry.fileHash = hash
+          job.status = 'hashing'
+          uploadJobs.unshift(job)
         }
-
+      
         const existingJob = await getJobByHash(hash)
-
+      
         if (existingJob) {
-            // check if file is complete and has expired
+          try {
             const remoteFile = await getFileEntryById(existingJob.fileEntry.id!)
 
             console.log(remoteFile)
-        } else {
-            try {
-                const dto = buildFileEntryDto(job)
-
-                const response = await createFileEntry(dto)
-
-                integrateCreateFileEntryResponse(job, response)
-
-                await saveJob(job)
-            } catch (err) {
-                notifyFileEntryError(err)
-                return
+      
+            const now = new Date()
+            const expiresAt = new Date(remoteFile.expiresAt ?? 0)
+      
+            const hasExpired = expiresAt.getTime() < now.getTime()
+            const isComplete = remoteFile.status?.toLowerCase() === 'complete'
+      
+            if (hasExpired && isComplete) {
+              await deleteJob(hash)
+      
+              // Restart fresh
+              const dto = buildFileEntryDto(job)
+              const response = await createFileEntry(dto)
+      
+              integrateCreateFileEntryResponse(job, response)
+              await saveJob(job)
             }
+          } catch (err) {
+            notifyFileEntryError(err)
+            return
+          }
+        } else {
+          try {
+            const dto = buildFileEntryDto(job)
+            const response = await createFileEntry(dto)
+      
+            integrateCreateFileEntryResponse(job, response)
+            await saveJob(job)
+          } catch (err) {
+            notifyFileEntryError(err)
+            return
+          }
         }
-
+      
         runUploadJob(job, file)
-    }
+      }
+      
 
     const loadPersistedJobs = async () => {
         const all = await getAllJobs()
